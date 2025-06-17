@@ -235,9 +235,11 @@ trait ProvidesBrowser
             );
         });
 
-        // @todo: Call some kind of afterBrowserRefresh(...) callback...
+        // @todo: Call some kind of afterBrowserRefresh(...) callback here so that we can clean up between test cases...
+        //        Or use existing afterClassCallbacks().
+
         // @todo: We never hit this dd() when RemoteWebDriver::createBySessionID(...) is called above for some reason...
-        // dd('browsers refreshed');
+        dd('browsers refreshed');
     }
 
     /**
