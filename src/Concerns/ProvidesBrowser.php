@@ -4,6 +4,7 @@ namespace Laravel\Dusk\Concerns;
 
 use Closure;
 use Exception;
+use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Illuminate\Support\Collection;
 use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\AfterClass;
@@ -28,6 +29,13 @@ trait ProvidesBrowser
     protected static $afterClassCallbacks = [];
 
     /**
+     * Whether the primary browser instance should be re-used or closed.
+     *
+     * @var bool
+     */
+    protected static $refreshBrowser = false;
+
+    /**
      * Tear down the Dusk test case class.
      *
      * @return void
@@ -35,7 +43,11 @@ trait ProvidesBrowser
     #[AfterClass]
     public static function tearDownDuskClass()
     {
-        static::closeAll();
+        if (static::$refreshBrowser) {
+            static::refreshAll();
+        } else {
+            static::closeAll();
+        }
 
         foreach (static::$afterClassCallbacks as $callback) {
             $callback();
@@ -205,6 +217,27 @@ trait ProvidesBrowser
         Collection::make(static::$browsers)->each->quit();
 
         static::$browsers = collect();
+    }
+
+    /**
+     * Refresh all of the active browsers' web driver sessions.
+     *
+     * @return void
+     */
+    public static function refreshAll()
+    {
+        Collection::make(static::$browsers)->map(function (Browser $browser) {
+            return new Browser(
+                RemoteWebDriver::createBySessionID(
+                    $browser->driver->getSessionID(),
+                    $browser->driver->getCommandExecutor()->getAddressOfRemoteServer(),
+                ),
+            );
+        });
+
+        // @todo: Call some kind of afterBrowserRefresh(...) callback...
+        // @todo: We never hit this dd() when RemoteWebDriver::createBySessionID(...) is called above for some reason...
+        // dd('browsers refreshed');
     }
 
     /**
